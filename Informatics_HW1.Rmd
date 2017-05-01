@@ -53,7 +53,7 @@ boxplot(climate$rain~climate$season,
         main = "Precipitation by Season", xlab = "Season", ylab = "Precipitation (mm)")
 ```
 
-####As seen in the box plot above, the wettest season is *winter*, and driest season is *summer*.
+####As seen in the box plot above, the wettest season is *winter* (season 1), and driest season is *summer* (season 3).
 
 
 ##Relating summer temperatures to winter precipitation
