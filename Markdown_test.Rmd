@@ -1,0 +1,84 @@
+---
+title: "Exploring Climate Data"
+author: "Jeff Cedarbaum"
+date: "April 28, 2017"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r readtable, echo=TRUE}
+climate = read.table("clim.txt", header=T)
+```
+
+##Precipitation by Month, 1942-2016 (mm)
+```{r monthly precip, echo = TRUE}
+boxplot(climate$rain~climate$month,
+        xlab = "Month", ylab = "Precipitation", main = "Precipitation by Month, 1942-2016")
+```
+
+##Average temp by month
+```{r monthly temp, echo = TRUE}
+climate$Tavg <- (climate$tmin+climate$tmax)/2
+boxplot(climate$Tavg~climate$month,
+        xlab ="Month", ylab = "Temperature", main = "Temperature by Month, 1942-2016")
+```
+
+
+#wettest year
+```{r wettest, echo = TRUE}
+precip.year <- aggregate(climate$rain, by=list(climate$year), sum)
+```
+##Wettest year: 1982
+###In that year, it might have looked like this:
+<div align="center"> <img src="rain.jpg"> </div>
+
+
+##Driest year: 2013
+###In that year, it tmight have looked like this:
+<div align="center"> <img src="drought.jpg"> </div>
+
+
+#Precipitation by season
+```{r seasonal precip, echo = TRUE}
+climate$season <- ifelse(climate$month %in% c(12,1,2), "1",
+                         ifelse(climate$month %in% c(3,4,5), "2",
+                                ifelse(climate$month %in% c(6,7,8), "3", "4")))
+boxplot(climate$rain~climate$season,
+        main = "Precipitation by Season", xlab = "Season", ylab = "Precipitation")
+```
+###As seen in the box plot above, the wettest season is *winter*, and driest season is *summer*.
+
+
+#Relating summer temperatures to winter precipitation
+```{r temp by precip, echo=TRUE}
+winter.precip <- subset(climate, season == "1")
+summer.temp <- subset(climate, season == "3")
+
+
+#now let's try to aggregate
+W_precip_by_year <- aggregate(winter.precip$rain, by=list(winter.precip$year), sum)
+
+S_temp_by_year <- aggregate(summer.temp$Tavg, by=list(summer.temp$year), mean)
+
+plot(S_temp$x~W_precip$x, main = "Winter Precipitation and Summer Temperature, 1949-2016", xlab = "Total Winter Precipitation", ylab = "Average Summer Temperature ")
+```
+
+###
+
+
+
+
+
+
+
+
+
+
+
+##Follow instructions on website (MikTeX) to knit to .pdf
+
