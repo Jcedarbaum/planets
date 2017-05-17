@@ -1,0 +1,109 @@
+---
+title: 'Informatics Homework #2: Data Ingest'
+author: "Jeff Cedarbaum"
+date: "May 11, 2017"
+output:
+  html_document: default
+  pdf_document: default
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Part 1
+##Import and Tidy
+
+First, we need to install the necessary R packages:
+```{r install, echo=TRUE}
+
+library(tidyverse)
+```
+
+Next, we need to import and tidy up the data. Here I select the variables I'm interested in, make sure that R recognizes the appropriate data types, make sure that R recognizes missing data as missing data, and filter the data to only examine entries in California, and for which locations are known. Finally, this filtered and cleaned dataset is saved as a pipe-delimited .csv file.
+```{r import and tidy, echo=TRUE}
+setwd("c:/Users/j/Desktop/planets/HW2")
+gaz_raw <- read_delim("features.txt", delim = "|")
+
+gaz <- select(gaz_raw, FEATURE_ID, FEATURE_NAME, FEATURE_CLASS, STATE_ALPHA,  COUNTY_NAME, PRIM_LAT_DEC, PRIM_LONG_DEC, SOURCE_LAT_DEC, SOURCE_LONG_DEC, ELEV_IN_M, MAP_NAME, DATE_CREATED, DATE_EDITED)
+
+gaz_orig <- gaz #backing it up
+
+#Changing Dates into Dates, all other types are correct
+gaz$DATE_CREATED <- parse_date(gaz$DATE_CREATED, "%m/%d/%Y")
+gaz$DATE_EDITED <- parse_date(gaz$DATE_EDITED, "%m/%d/%Y")
+
+#Dealing with missing data
+gaz$PRIM_LAT_DEC[gaz$PRIM_LAT_DEC==0] <- NA
+gaz$PRIM_LONG_DEC[gaz$PRIM_LONG_DEC==0] <- NA
+gaz$MAP_NAME[gaz$MAP_NAME=="Unknown"] <- NA #THIS SEEMS TO WORK
+
+gaz[is.na(gaz$PRIM_LAT_DEC),]
+
+#Filtering out stuff I don't like (by making sure that longitude and latitude are both numerical values in the expected range)
+gaz_filter <- filter(gaz, STATE_ALPHA == "CA") %>%
+  filter(PRIM_LAT_DEC > 1) %>%
+  filter(PRIM_LONG_DEC < 1)
+
+
+#Why would we ever use "|" instead of ","?
+write_delim(gaz_filter, "Gaz.csv", delim = "|")
+```
+
+
+#Part 2
+##Analyze
+First, the most common feature names and least-common feature classes can be found by combining the 'table' and the 'sort' functions, as follows:
+```{r frequency, echo = TRUE}
+High_freq <- sort(table(gaz$FEATURE_NAME), decreasing = TRUE)
+
+Low_freq <- sort(table(gaz$FEATURE_CLASS), decreasing = FALSE)
+```
+
+By viewing these tables, we can see that "Church of Christ" is the most common feature name, appearing 228 times. The two least common feature class types are "sea" and "isthmus."
+
+
+Next, I will find the centerpoints of each county. First, I make a new table that groups the data by county, and then calculate the minimum a and maximum longitude and latitude associated with each county. By taking the means of these values, I can find the approximate centerpoints.
+```{r centerpoints, echo = TRUE}
+counties <- group_by(gaz, COUNTY_NAME)
+
+centers <- summarize(counties, minlat = min(PRIM_LAT_DEC), maxlat = max(PRIM_LAT_DEC), minlong = min(PRIM_LONG_DEC), maxlong = max(PRIM_LONG_DEC))
+
+
+centers$meanlat <- (centers$minlat + centers$maxlat)/2
+centers$meanlong <- (centers$minlong + centers$maxlong)/2
+```
+
+Viewing the table "centers" will now give mean longitude and latitude values, which represent the approximate centerpoints of each county.
+
+Finally, I will examine the proportion of features in the State that are man-made vs natural.
+
+```{r natural vs manmade, echo = TRUE}
+features <- read_csv("Class_Code_Definitions.csv") # import data describing each feature class 
+features <- features[,-2] # remove unnecessary column
+features$Type <- "" # create a new column for the feature type 
+colnames(features) <- c("FEATURE_CLASS", "Type") # rename column to match the column of the same value in "gaz_filter" and "gaz.csv"
+
+
+features$Type <- ifelse(features$FEATURE_CLASS %in% c("Airport", "Bridge", "Building", "Canal", "Cemetery", "Census", "Church", "Civil", "Crossing", "Dam", "Harbor", "Hospital", "Levee", "Locale", "Military", "Mine", "Oilfield", "Populated Place", "Post Office", "Reservoir", "School", "Tower", "Trail", "Tunnel", "Well"), "man_made", "natural")
+
+
+Feature_Types <- left_join(gaz_filter, features)
+
+natural <- filter(Feature_Types, Type == "natural")
+count(natural) #count = 46,175
+man_made <- filter(Feature_Types, Type == "man_made")
+count(man_made) #count = 74,788 
+
+Proportion_natural <- 46175/(46175+74788)
+#38.17%
+Proportion_manmade <- 75739/(46175+74788)
+#62.61%
+```
+
+As shown above, approximately 38.17% of the features inthe final dataset are natural, and approximately 62.61% are man-made.
+
+Also, because this took me a long time and was really hard, here's a funny gif: http://i.imgur.com/Uq5DRSk.gifv
+
+
+
+
