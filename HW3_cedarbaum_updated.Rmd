@@ -1,0 +1,151 @@
+---
+title: "Informatics HW3"
+author: "Jeff Cedarbaum"
+date: "May 18, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Before beginning I need to import the data that I'll be visualizing, and make sure the proper R packages are loaded.
+
+```{r data import}
+
+setwd("c:/Users/j/Desktop/planets/ggplot2")
+
+thinshallow <- read.table("data/resthin.shallow.txt", header=T)
+thindeep <- read.table("data/resthin.deep.txt", header=T)
+clim <- read.table("data/sierraclim.txt",header=T)
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(gridExtra)
+library(lubridate)
+library(tidyverse)
+```
+
+Now that data and packages are loaded, first I'll take a look at differences in the rate of evapo-transpiration in "shared" vs "not shared" thinning practices in the thindeep dataset.
+
+```{r thindeep, echo = TRUE}
+
+thindeep$ET <- thindeep$trans+thindeep$evap
+
+shared <- subset(thindeep, thindeep$shared=="TRUE")
+unshared <- subset(thindeep, thindeep$shared=="FALSE")
+
+Plot_shared <- ggplot(shared)+
+  geom_line(aes(x = wy, y = ET), stat="summary", fun.y="mean", col = "Green", size = 1)+
+  ggtitle("Shared Thinning")+
+  labs(x = "Years Since Thinning", y = "Evapo-Transpiration", size=8)
+
+Plot_unshared <- ggplot(unshared)+
+  geom_line(aes(x = wy, y = ET), stat="summary", fun.y="mean", col = "Blue", size = 1)+
+  ggtitle("Unshared Thinning")+
+  labs(x = "Years Since Thinning", y = "Evapo-Transpiration", size=8)
+
+grid.arrange(Plot_shared,Plot_unshared)
+
+```
+
+
+Next, just using the 'shared' data points from the thindeep dataset, I'll explore the relationship between evaporation and transpiration.
+
+```{r E&T, echo = TRUE}
+
+Plot_ET <- ggplot(shared)+
+  geom_line(aes(x=month, y=evap), stat="summary", fun.y = "mean", col = "Blue")+
+  geom_line(aes(x=month, y=trans), stat="summary", fun.y = "mean", col = "Green")+
+  labs(x="Month", y="Water Evaporated or Transpired")+
+  annotate("text", y=0.25, x=6, label = "Evaporation")+
+  annotate("text", y=3, x=6, label = "Transpiration")+
+  ggtitle("Transpiration and Evaporation under Shared Thinning")+
+  annotate("text", y=-0.3, x=1, label = "Jan")+
+  annotate("text", y=-0.3, x=2, label = "Feb")+
+  annotate("text", y=-0.3, x=3, label = "Mar")+
+  annotate("text", y=-0.3, x=4, label = "Apr")+
+  annotate("text", y=-0.3, x=5, label = "May")+
+  annotate("text", y=-0.3, x=6, label = "Jun")+
+  annotate("text", y=-0.3, x=7, label = "Jul")+
+  annotate("text", y=-0.3, x=8, label = "Aug")+
+  annotate("text", y=-0.3, x=9, label = "Sep")+
+  annotate("text", y=-0.3, x=10, label = "Oct")+
+  annotate("text", y=-0.3, x=11, label = "Nov")+
+  annotate("text", y=-0.3, x=12, label = "Dec")+
+  scale_x_discrete(labels=month.abb)
+
+Plot_ET
+
+
+  
+  #Plot_ET <- ggplot(shared)+
+#  geom_line(aes(x=month, y=as.factor(evap)), stat="summary", fun.y = "mean", col = "Blue")+
+#  geom_line(aes(x=month, y=as.factor(trans)), stat="summary", fun.y = "mean", col = "Green")+
+#  labs(x="Month", y="Water Evaporated or Transpired")+
+#  annotate("text", y=0.25, x=6, label = "Evaporation")+
+#  annotate("text", y=3, x=6, label = "Transpiration")+
+#  ggtitle("Transpiration and Evaporation under Shared Thinning")
+#  scale_x_discrete(labels=month.abb)
+
+  #I tried this ^ code to get the x-axis labels to be month names instead of numbers, I'm not sure why it didn't work.
+
+```
+
+
+For the next one, I'll split average temperature by month using the clim dataset.
+
+```{r temp, echo = TRUE}
+
+clim$ave_temp <- (clim$tmin+clim$tmax)/2
+
+plot_monthly_temp <- ggplot(clim)+
+  geom_bar(aes(x=month, y = ave_temp), stat="summary", fun.y="mean", col="red", fill="red")+
+  labs(x="Month", y="Average Temperature (degrees C)")+
+  ggtitle("Average Monthly Temperature")+
+  annotate("text", y=-0.3, x=1, label = "Jan")+
+  annotate("text", y=-0.3, x=2, label = "Feb")+
+  annotate("text", y=-0.3, x=3, label = "Mar")+
+  annotate("text", y=-0.3, x=4, label = "Apr")+
+  annotate("text", y=-0.3, x=5, label = "May")+
+  annotate("text", y=-0.3, x=6, label = "Jun")+
+  annotate("text", y=-0.3, x=7, label = "Jul")+
+  annotate("text", y=-0.3, x=8, label = "Aug")+
+  annotate("text", y=-0.3, x=9, label = "Sep")+
+  annotate("text", y=-0.3, x=10, label = "Oct")+
+  annotate("text", y=-0.3, x=11, label = "Nov")+
+  annotate("text", y=-0.3, x=12, label = "Dec")+
+  scale_x_discrete(labels=month.abb)
+
+
+plot_monthly_temp
+
+```
+
+
+
+Finally, I'll look at average temperatures during summer (June through September) vs the rest of the year, side by side.
+
+
+```{r last plot, echo = TRUE}
+
+
+clim$summer <- ifelse(clim$month>5 & clim$month<10, "Summer", "Not Summer")
+
+
+plot_temp_facet <- ggplot(clim)+
+  geom_point(aes(x=year, y = ave_temp), stat="summary", fun.y="mean", col = "red")+
+  labs(x="Year", y="Average Temperature (degrees C)")+
+  ggtitle("Average Annual Temperature")+
+  facet_wrap(~as.factor(clim$summer))
+
+#Tried to use colorbrewer to define color by average temperature and get a diverging palette. It didn't work and I'm not sure why. 
+
+plot_temp_facet
+
+```
+
+
+
+
