@@ -1,0 +1,135 @@
+---
+title: "Fishery Revenue Model"
+author: "Maegan Blansett and Jeff Cedarbaum"
+date: "May 24, 2017"
+output: html_document
+---
+
+
+## Fishery Revenue Model 
+
+The following model has been created to return information regarding total catch and revenue amounts for salmon fisheries in different locations along the West Coast. 
+
+It requires the use of the following packages: 
+
+* roxygen2
+
+* ggplot2
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+```
+
+
+The model, with associated **documentation**, is provided below. 
+
+
+```{r fish model}
+#' Fishery Revenue 
+#' 
+#' This function calculates the total revenue for different catches and prices of fish at different fishery locations. 
+#' 
+#' @param fish_price a table that gives the prices for different types of fish 
+#' @param fish_catch a table that gives the number of fish caught at each location, where each location is a different column and each type of fish is a different row 
+#' @return most frequently caught fish at each location 
+#' @return total revenue at each location 
+#' @return total revenue at all locations 
+#' @return graph of revenue by location 
+
+
+fishery_revenue = function(fish_price, fish_catch) {
+  
+  # return most frequently caught fish at each location 
+  freq <- list(rownames(fish_catch[apply(fish_catch, 2, which.max), ]), colnames(fish_catch[apply(fish_catch, 2, which.max), ]))
+  
+  # return total revenue at each location 
+  new_fish <- (fish_catch) * (fish_price$price)
+  loc_rev <- apply(new_fish, 2, sum)
+  
+  # return total revenue at all locations 
+  all_rev <- all_rev <- sum(loc_rev)
+  
+  # if user desired, graph revenue by location 
+  plot_data <- as.data.frame(cbind(location, loc_rev)) #Creating dataframe to plot
+  
+  scaleFUN <- function(x) sprintf("%.2f", x) #limiting decimal places on y-axis
+  
+  rev_plot <- ggplot(plot_data)+
+    geom_bar(aes(x=location, y=as.numeric(as.character(loc_rev))), stat="summary", fun.y="sum", col="Blue", fill="darkgreen")+
+    labs(x="Location", y="Revenue (million $)")+
+    ggtitle("Salmon Fishing Revenue by Location")+
+    scale_y_continuous(labels=scaleFUN)
+    # geom_text(aes(label=as.numeric(as.character(loc_rev), digits = 2), x=location, y=as.numeric(as.character(loc_rev)), vjust=1.5)) ##Adding this line of code will insert text onto the plot showing exact revenue for each location, if the user desires.
+
+  
+  return(list(freq, loc_rev, all_rev, rev_plot))
+  
+}
+```
+
+## Generating Sample Data  
+
+In order to successfully utilize this model, the user must ensure that their data are provided in the correct format. 
+
+Required inputs are: 
+
+* A data frame called **fish_price**, which contains a column of fish types as a *factor* and a column of their respective current market prices ($USD per fish) as a *numeric*. 
+
+* A data frame called **fish_catch**, which contains a column for each fishery location, a row for each type of fish, and counts of fish caught at each location. 
+
+The following code can be used to generate a **fish_price** input table. 
+
+```{r fish_price}
+# Create a table of fish prices for different types of salmon:
+
+# First, create vector of types of salmon
+fish <- c("chinook", "coho", "pink", "sockeye", "chum", "steelhead", "cutthroat" )
+
+# Next, create a vector of prices
+price <- c(375, 300, 250, 350, 260, 340, 355)
+price
+class(price) # numeric 
+
+# Finally, bind the fish names and prices into one table 
+fish_price <- data.frame(cbind(fish, price))
+class(fish_price$price) # now changed to factor
+fish_price$price <- as.numeric(paste(fish_price$price)) # paste makes the values stay what they are
+View(fish_price)
+```
+
+The following code can be used to generate a **fish_catch** input table. 
+
+```{r fish_catch}
+# Create a table of fish catches at different locations:
+
+# First, create a vector of possible locations 
+location <- c("Anchorage", "Juneau", "Prince Rupert", "Vancouver", "Seattle", "Portland", "Klamath", "Eureka")
+
+# Next, create an empty data frame of fish types and locations
+fish_catch <- data.frame(matrix(ncol = length(location), nrow = length(fish)))
+rownames(fish_catch) = fish
+colnames(fish_catch) = location
+View(fish_catch)
+
+# Finally, fill in the values of the table with random numbers of fish caught 
+fish_catch$Vancouver <- rnorm(6, sd = 0.5, n = length(fish))
+fish_catch$Seattle <- rnorm(6, sd = 0.5, n = length(fish))
+fish_catch$Portland <- rnorm(6, sd = 0.5, n = length(fish))
+fish_catch$Klamath <- rnorm(6, sd = 0.5, n = length(fish))
+fish_catch$Juneau <- rnorm(6, sd = 0.5, n = length(fish))
+fish_catch$Anchorage <- rnorm(6, sd = 0.5, n = length(fish))
+fish_catch$`Prince Rupert` <- rnorm(6, sd = 0.5, n = length(fish))
+fish_catch$Eureka <- rnorm(6, sd = 0.5, n = length(fish))
+View(fish_catch)
+```
+
+## Running the Model
+
+To run the model, simply use the following code. See results below.
+
+```{r model}
+fishery_revenue(fish_price, fish_catch)
+```
+
